@@ -11,6 +11,9 @@ import CalendarPage from './pages/CalendarPage';
 import SubjectsPage from './pages/SubjectsPage';
 import PomodoroPage from './pages/PomodoroPage';
 import SettingsPage from './pages/SettingsPage';
+import NotesPage from './pages/NotesPage';
+import ExamsPage from './pages/ExamsPage';
+import SyllabusPage from './pages/SyllabusPage';
 
 export default function App() {
   return (
@@ -25,6 +28,9 @@ export default function App() {
                   <Route path="/assignments" element={<AssignmentsPage />} />
                   <Route path="/calendar" element={<CalendarPage />} />
                   <Route path="/subjects" element={<SubjectsPage />} />
+                  <Route path="/notes" element={<NotesPage />} />
+                  <Route path="/exams" element={<ExamsPage />} />
+                  <Route path="/syllabus" element={<SyllabusPage />} />
                   <Route path="/pomodoro" element={<PomodoroPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Route>

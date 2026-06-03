@@ -8,6 +8,9 @@ import type {
   Reminder,
   AppSettings,
   Note,
+  StudyNote,
+  Exam,
+  Syllabus,
 } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { DEFAULT_SUBJECTS, DEFAULT_SETTINGS, STORAGE_KEYS } from '../utils/constants';
@@ -19,6 +22,9 @@ interface AppState {
   pomodoroSessions: PomodoroSession[];
   reminders: Reminder[];
   settings: AppSettings;
+  studyNotes: StudyNote[];
+  exams: Exam[];
+  syllabi: Syllabus[];
 }
 
 type AppAction =
@@ -42,7 +48,13 @@ type AppAction =
   | { type: 'ADD_REMINDER'; payload: Reminder }
   | { type: 'DISMISS_REMINDER'; payload: string }
   | { type: 'UPDATE_SETTINGS'; payload: Partial<AppSettings> }
-  | { type: 'RESET_ALL' };
+  | { type: 'RESET_ALL' }
+  | { type: 'ADD_STUDY_NOTE'; payload: StudyNote }
+  | { type: 'DELETE_STUDY_NOTE'; payload: string }
+  | { type: 'ADD_EXAM'; payload: Exam }
+  | { type: 'DELETE_EXAM'; payload: string }
+  | { type: 'ADD_SYLLABUS'; payload: Syllabus }
+  | { type: 'DELETE_SYLLABUS'; payload: string };
 
 const initialState: AppState = {
   subjects: loadFromStorage(STORAGE_KEYS.subjects, DEFAULT_SUBJECTS),
@@ -51,6 +63,9 @@ const initialState: AppState = {
   pomodoroSessions: loadFromStorage(STORAGE_KEYS.pomodoroSessions, []),
   reminders: loadFromStorage(STORAGE_KEYS.reminders, []),
   settings: loadFromStorage(STORAGE_KEYS.settings, DEFAULT_SETTINGS),
+  studyNotes: loadFromStorage(STORAGE_KEYS.studyNotes, []),
+  exams: loadFromStorage(STORAGE_KEYS.exams, []),
+  syllabi: loadFromStorage(STORAGE_KEYS.syllabi, []),
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -72,6 +87,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
         subjects: state.subjects.filter((s) => s.id !== action.payload),
         assignments: state.assignments.filter((a) => a.subjectId !== action.payload),
         studySessions: state.studySessions.filter((s) => s.subjectId !== action.payload),
+        studyNotes: state.studyNotes.filter((n) => n.subjectId !== action.payload),
+        exams: state.exams.filter((e) => e.subjectId !== action.payload),
+        syllabi: state.syllabi.filter((s) => s.subjectId !== action.payload),
       };
     case 'SET_ASSIGNMENTS':
       return { ...state, assignments: action.payload };
@@ -156,6 +174,28 @@ function appReducer(state: AppState, action: AppAction): AppState {
       };
     case 'UPDATE_SETTINGS':
       return { ...state, settings: { ...state.settings, ...action.payload } };
+    case 'ADD_STUDY_NOTE':
+      return { ...state, studyNotes: [...state.studyNotes, action.payload] };
+    case 'DELETE_STUDY_NOTE':
+      return { ...state, studyNotes: state.studyNotes.filter((n) => n.id !== action.payload) };
+    case 'ADD_EXAM':
+      return { ...state, exams: [...state.exams, action.payload] };
+    case 'DELETE_EXAM':
+      return { ...state, exams: state.exams.filter((e) => e.id !== action.payload) };
+    case 'ADD_SYLLABUS': {
+      const exists = state.syllabi.some((s) => s.subjectId === action.payload.subjectId);
+      if (exists) {
+        return {
+          ...state,
+          syllabi: state.syllabi.map((s) =>
+            s.subjectId === action.payload.subjectId ? action.payload : s
+          ),
+        };
+      }
+      return { ...state, syllabi: [...state.syllabi, action.payload] };
+    }
+    case 'DELETE_SYLLABUS':
+      return { ...state, syllabi: state.syllabi.filter((s) => s.id !== action.payload) };
     case 'RESET_ALL':
       return {
         subjects: DEFAULT_SUBJECTS,
@@ -164,6 +204,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
         pomodoroSessions: [],
         reminders: [],
         settings: DEFAULT_SETTINGS,
+        studyNotes: [],
+        exams: [],
+        syllabi: [],
       };
     default:
       return state;
@@ -190,6 +233,12 @@ interface AppContextType extends AppState {
   getSubjectById: (id: string) => Subject | undefined;
   dismissReminder: (id: string) => void;
   resetAll: () => void;
+  addStudyNote: (note: Omit<StudyNote, 'id' | 'createdAt'>) => void;
+  deleteStudyNote: (id: string) => void;
+  addExam: (exam: Omit<Exam, 'id' | 'createdAt'>) => void;
+  deleteExam: (id: string) => void;
+  saveSyllabus: (syllabus: Omit<Syllabus, 'id' | 'createdAt'>) => void;
+  deleteSyllabus: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -221,6 +270,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.settings, state.settings);
   }, [state.settings]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.studyNotes, state.studyNotes);
+  }, [state.studyNotes]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.exams, state.exams);
+  }, [state.exams]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.syllabi, state.syllabi);
+  }, [state.syllabi]);
 
   const addSubject = useCallback(
     (name: string, color: string, icon: string) => {
@@ -365,6 +426,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'RESET_ALL' });
   }, []);
 
+  const addStudyNote = useCallback(
+    (note: Omit<StudyNote, 'id' | 'createdAt'>) => {
+      dispatch({
+        type: 'ADD_STUDY_NOTE',
+        payload: { ...note, id: uuidv4(), createdAt: new Date().toISOString() },
+      });
+    },
+    []
+  );
+
+  const deleteStudyNote = useCallback((id: string) => {
+    dispatch({ type: 'DELETE_STUDY_NOTE', payload: id });
+  }, []);
+
+  const addExam = useCallback(
+    (exam: Omit<Exam, 'id' | 'createdAt'>) => {
+      dispatch({
+        type: 'ADD_EXAM',
+        payload: { ...exam, id: uuidv4(), createdAt: new Date().toISOString() },
+      });
+    },
+    []
+  );
+
+  const deleteExam = useCallback((id: string) => {
+    dispatch({ type: 'DELETE_EXAM', payload: id });
+  }, []);
+
+  const saveSyllabus = useCallback(
+    (syllabus: Omit<Syllabus, 'id' | 'createdAt'>) => {
+      dispatch({
+        type: 'ADD_SYLLABUS',
+        payload: { ...syllabus, id: uuidv4(), createdAt: new Date().toISOString() },
+      });
+    },
+    []
+  );
+
+  const deleteSyllabus = useCallback((id: string) => {
+    dispatch({ type: 'DELETE_SYLLABUS', payload: id });
+  }, []);
+
   const value: AppContextType = {
     ...state,
     dispatch,
@@ -386,6 +489,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getSubjectById,
     dismissReminder,
     resetAll,
+    addStudyNote,
+    deleteStudyNote,
+    addExam,
+    deleteExam,
+    saveSyllabus,
+    deleteSyllabus,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

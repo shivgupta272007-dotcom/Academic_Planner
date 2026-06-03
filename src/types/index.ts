@@ -83,6 +83,48 @@ export interface AppSettings {
   notifications: NotificationSettings;
 }
 
+export interface StudyNote {
+  id: string;
+  subjectId: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  attachment?: {
+    name: string;
+    data: string;
+    size: number;
+  };
+}
+
+export interface Exam {
+  id: string;
+  subjectId: string;
+  title: string;
+  date: string;
+  time: string;
+  room?: string;
+  notes?: string;
+  createdAt: string;
+  datesheet?: {
+    name: string;
+    data: string;
+    size: number;
+  };
+}
+
+export interface Syllabus {
+  id: string;
+  subjectId: string;
+  createdAt: string;
+  notes?: string;
+  attachment?: {
+    name: string;
+    data: string;
+    size: number;
+  };
+}
+
 export type Priority = Assignment['priority'];
 export type Status = Assignment['status'];
 export type SessionStatus = StudySession['status'];
+

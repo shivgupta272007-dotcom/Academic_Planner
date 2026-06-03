@@ -9,6 +9,9 @@ import {
   GraduationCap,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  Award,
+  Bookmark,
 } from 'lucide-react';
 
 const navItems = [
@@ -16,6 +19,9 @@ const navItems = [
   { path: '/assignments', icon: ClipboardList, label: 'Assignments' },
   { path: '/calendar', icon: Calendar, label: 'Calendar' },
   { path: '/subjects', icon: BookOpen, label: 'Subjects' },
+  { path: '/notes', icon: FileText, label: 'Notes' },
+  { path: '/exams', icon: Award, label: 'Exams' },
+  { path: '/syllabus', icon: Bookmark, label: 'Syllabus' },
   { path: '/pomodoro', icon: Timer, label: 'Pomodoro' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];

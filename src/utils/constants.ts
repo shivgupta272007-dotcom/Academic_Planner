@@ -75,4 +75,7 @@ export const STORAGE_KEYS = {
   pomodoroSessions: 'academic-planner-pomodoro-sessions',
   reminders: 'academic-planner-reminders',
   settings: 'academic-planner-settings',
+  studyNotes: 'academic-planner-study-notes',
+  exams: 'academic-planner-exams',
+  syllabi: 'academic-planner-syllabi',
 };
