@@ -4,6 +4,12 @@ export interface Subject {
   color: string;
   icon: string;
   createdAt: string;
+  courseCode?: string;
+  credits?: number;
+  professorName?: string;
+  professorEmail?: string;
+  officeHours?: string;
+  grade?: string;
 }
 
 export interface Note {

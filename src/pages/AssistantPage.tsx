@@ -38,8 +38,8 @@ export default function AssistantPage() {
       suggestions: [
         'Suggest a study plan',
         'Check my urgent deadlines',
+        'Show my GPA breakdown',
         'How can I study better?',
-        'Show my stats overview',
       ],
     },
   ]);
@@ -112,10 +112,55 @@ export default function AssistantPage() {
     const streak = calculateStreak(assignments);
     const hours = getStudyHoursThisWeek(pomodoroSessions);
     const completed = filteredAssignments.filter((a) => a.status === 'completed').length;
-    const total = filteredAssignments.length;
+        const total = filteredAssignments.length;
+
+    // GPA calculations for college summary
+    const getGPAPointsLocal = (letterGrade?: string): number | null => {
+      if (!letterGrade) return null;
+      switch (letterGrade) {
+        case 'A+': return 4.0;
+        case 'A': return 4.0;
+        case 'A-': return 3.7;
+        case 'B+': return 3.3;
+        case 'B': return 3.0;
+        case 'B-': return 2.7;
+        case 'C+': return 2.3;
+        case 'C': return 2.0;
+        case 'C-': return 1.7;
+        case 'D': return 1.0;
+        case 'F': return 0.0;
+        default: return null;
+      }
+    };
+
+    let totalPoints = 0;
+    let gradedCredits = 0;
+    let totalCredits = 0;
+
+    subjects.forEach((s) => {
+      const cred = s.credits || 0;
+      totalCredits += cred;
+      const pts = getGPAPointsLocal(s.grade);
+      if (pts !== null && cred > 0) {
+        totalPoints += pts * cred;
+        gradedCredits += cred;
+      }
+    });
+
+    const calculatedGPA = gradedCredits > 0 ? (totalPoints / gradedCredits).toFixed(2) : 'N/A';
 
     const subjectListStr = subjects
-      .map((s) => `- ${s.name} (Icon: ${s.icon})`)
+      .map((s) => {
+        let details = `- ${s.name} (Icon: ${s.icon}`;
+        if (s.courseCode) details += `, Course Code: ${s.courseCode}`;
+        if (s.credits !== undefined) details += `, Credits: ${s.credits}`;
+        if (s.grade) details += `, Expected Grade: ${s.grade}`;
+        if (s.professorName) details += `, Professor: ${s.professorName}`;
+        if (s.professorEmail) details += `, Email: ${s.professorEmail}`;
+        if (s.officeHours) details += `, Office Hours: ${s.officeHours}`;
+        details += ')';
+        return details;
+      })
       .join('\n');
 
     const overdueStr = overdue
@@ -191,6 +236,7 @@ User's Real-Time Planner Dashboard Data:
 - Current Study Streak: 🔥 ${streak} day${streak !== 1 ? 's' : ''}
 - Study Hours This Week: ⚡ ${hours} hour${hours !== 1 ? 's' : ''} logged
 - Completed Assignments: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed / total) * 100) : 0}% completion for ${isFocus ? activeSub?.name : 'all subjects'})
+- Estimated Semester GPA: 🎓 ${calculatedGPA} (${totalCredits} credits logged, ${gradedCredits} graded)
 - Total Saved Course Notes: 📝 ${studyNotes.length} note(s)
 - Total Course Syllabus Files: 📚 ${syllabi.length} file(s)
 - Total Saved Study Resource Links: 🔗 ${studyResources.length} link(s)
@@ -304,6 +350,66 @@ Instructions:
       return {
         text: `Here is your academic dashboard analysis, ${studentName} 📊:\n\n- **Current Study Streak**: 🔥 ${streak} day${streak !== 1 ? 's' : ''}\n- **Focus Hours (This Week)**: ⚡ ${hours} hour${hours !== 1 ? 's' : ''} logged\n- **Assignments Finished**: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed/total)*100) : 0}% completion rate)\n\n${streak > 0 ? 'Fantastic streak! Keep logging daily sessions to keep the flame burning!' : 'Complete an assignment today to start your study streak!'}`,
         suggestions: ['Suggest a study plan', 'Check my urgent deadlines'],
+      };
+    }
+
+    // 3.5 Context: GPA / Credits / Course grades info
+    if (q.includes('gpa') || q.includes('credits') || q.includes('grade') || q.includes('professor') || q.includes('prof') || q.includes('office hour')) {
+      const getGPAPointsLocal = (letterGrade?: string): number | null => {
+        if (!letterGrade) return null;
+        switch (letterGrade) {
+          case 'A+': return 4.0;
+          case 'A': return 4.0;
+          case 'A-': return 3.7;
+          case 'B+': return 3.3;
+          case 'B': return 3.0;
+          case 'B-': return 2.7;
+          case 'C+': return 2.3;
+          case 'C': return 2.0;
+          case 'C-': return 1.7;
+          case 'D': return 1.0;
+          case 'F': return 0.0;
+          default: return null;
+        }
+      };
+
+      let totalPoints = 0;
+      let gradedCredits = 0;
+      let totalCredits = 0;
+
+      subjects.forEach((s) => {
+        const cred = s.credits || 0;
+        totalCredits += cred;
+        const pts = getGPAPointsLocal(s.grade);
+        if (pts !== null && cred > 0) {
+          totalPoints += pts * cred;
+          gradedCredits += cred;
+        }
+      });
+
+      const calculatedGPA = gradedCredits > 0 ? (totalPoints / gradedCredits).toFixed(2) : null;
+      
+      let responseText = `Here is your college course and GPA breakdown, ${studentName} 🎓:\n\n`;
+      responseText += `- **Estimated GPA**: ${calculatedGPA ? `⭐ **${calculatedGPA}**` : 'N/A (No graded courses yet)'}\n`;
+      responseText += `- **Total Credits**: ${totalCredits} credit hours (${gradedCredits} graded)\n\n`;
+
+      if (subjects.length > 0) {
+        responseText += `**Course Details:**\n`;
+        subjects.forEach(s => {
+          responseText += `- **${s.name}** ${s.courseCode ? `(${s.courseCode})` : ''}:\n`;
+          responseText += `  - Credits: ${s.credits !== undefined ? s.credits : 'N/A'}\n`;
+          responseText += `  - Expected Grade: ${s.grade || 'N/A'}\n`;
+          if (s.professorName) responseText += `  - Professor: ${s.professorName}\n`;
+          if (s.professorEmail) responseText += `  - Contact: ${s.professorEmail}\n`;
+          if (s.officeHours) responseText += `  - Office Hours: ${s.officeHours}\n`;
+        });
+      } else {
+        responseText += `You haven't added any college courses yet. Go to the **Subjects** page to add your classes!`;
+      }
+
+      return {
+        text: responseText,
+        suggestions: ['Suggest a study plan', 'Show my stats overview'],
       };
     }
 

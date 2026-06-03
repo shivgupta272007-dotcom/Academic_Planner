@@ -226,7 +226,17 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 interface AppContextType extends AppState {
   dispatch: React.Dispatch<AppAction>;
-  addSubject: (name: string, color: string, icon: string) => void;
+  addSubject: (
+    name: string,
+    color: string,
+    icon: string,
+    courseCode?: string,
+    credits?: number,
+    professorName?: string,
+    professorEmail?: string,
+    officeHours?: string,
+    grade?: string
+  ) => void;
   updateSubject: (subject: Subject) => void;
   deleteSubject: (id: string) => void;
   addAssignment: (assignment: Omit<Assignment, 'id' | 'notes' | 'createdAt'>) => void;
@@ -301,10 +311,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.studyResources]);
 
   const addSubject = useCallback(
-    (name: string, color: string, icon: string) => {
+    (
+      name: string,
+      color: string,
+      icon: string,
+      courseCode?: string,
+      credits?: number,
+      professorName?: string,
+      professorEmail?: string,
+      officeHours?: string,
+      grade?: string
+    ) => {
       dispatch({
         type: 'ADD_SUBJECT',
-        payload: { id: uuidv4(), name, color, icon, createdAt: new Date().toISOString() },
+        payload: {
+          id: uuidv4(),
+          name,
+          color,
+          icon,
+          createdAt: new Date().toISOString(),
+          courseCode,
+          credits,
+          professorName,
+          professorEmail,
+          officeHours,
+          grade,
+        },
       });
     },
     []
