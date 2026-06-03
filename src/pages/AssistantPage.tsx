@@ -26,6 +26,8 @@ export default function AssistantPage() {
 
   const studentName = settings.userName || 'Student';
 
+  const [focusSubjectId, setFocusSubjectId] = useState<string>('all');
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -48,13 +50,68 @@ export default function AssistantPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  // Context focus shift alert message from Shiv
+  useEffect(() => {
+    if (focusSubjectId !== 'all') {
+      const sub = subjects.find(s => s.id === focusSubjectId);
+      const subName = sub?.name || 'Subject';
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `focus-change-${Date.now()}`,
+          sender: 'shiv',
+          text: `🎯 I have focused my context on **${subName}** ${sub?.icon || ''}. I can now read the full text of your notes and syllabus for this subject. Ask me questions, request a quiz, or ask for a custom study plan!`,
+          timestamp: new Date(),
+          suggestions: [
+            `Quiz me on ${subName}`,
+            `Review ${subName} syllabus`,
+            `Suggest a ${subName} study plan`
+          ]
+        }
+      ]);
+    } else {
+      // Avoid firing on initial render when there is only the welcome message
+      if (messages.length > 1) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `focus-change-${Date.now()}`,
+            sender: 'shiv',
+            text: `🌐 Focus reset. I am now looking at your overall Academic Dashboard with overview context for all subjects.`,
+            timestamp: new Date(),
+            suggestions: [
+              'Show my stats overview',
+              'Check my urgent deadlines',
+              'Suggest a study plan'
+            ]
+          }
+        ]);
+      }
+    }
+  }, [focusSubjectId, subjects]);
+
   const getSystemPrompt = () => {
-    const overdue = getOverdueAssignments(assignments);
-    const upcoming = getUpcomingAssignments(assignments, 7);
+    const isFocus = focusSubjectId !== 'all';
+    const activeSub = isFocus ? subjects.find(s => s.id === focusSubjectId) : null;
+
+    const filteredAssignments = isFocus
+      ? assignments.filter(a => a.subjectId === focusSubjectId)
+      : assignments;
+
+    const filteredExams = isFocus
+      ? exams.filter(e => e.subjectId === focusSubjectId)
+      : exams;
+
+    const filteredNotes = isFocus
+      ? studyNotes.filter(n => n.subjectId === focusSubjectId)
+      : studyNotes;
+
+    const overdue = getOverdueAssignments(filteredAssignments);
+    const upcoming = getUpcomingAssignments(filteredAssignments, 7);
     const streak = calculateStreak(assignments);
     const hours = getStudyHoursThisWeek(pomodoroSessions);
-    const completed = assignments.filter((a) => a.status === 'completed').length;
-    const total = assignments.length;
+    const completed = filteredAssignments.filter((a) => a.status === 'completed').length;
+    const total = filteredAssignments.length;
 
     const subjectListStr = subjects
       .map((s) => `- ${s.name} (Icon: ${s.icon})`)
@@ -75,19 +132,36 @@ export default function AssistantPage() {
       })
       .join('\n');
 
-    const examStr = exams
+    const examStr = filteredExams
       .map((e) => {
         const sub = subjects.find((s) => s.id === e.subjectId);
         return `- ${e.title} (${sub?.name || 'Subject'}) on ${e.date} at ${e.time}${e.room ? ` in Room ${e.room}` : ''}`;
       })
       .join('\n');
 
-    const notesStr = studyNotes
-      .map((n) => {
-        const sub = subjects.find((s) => s.id === n.subjectId);
-        return `- ${n.title} (${sub?.name || 'Subject'})`;
-      })
-      .join('\n');
+    // Load full notes contents for focused subject
+    let detailedNotesStr = '';
+    if (isFocus) {
+      detailedNotesStr = filteredNotes
+        .map((n) => `--- NOTE: "${n.title}" ---\n${n.content}`)
+        .join('\n\n');
+    } else {
+      detailedNotesStr = filteredNotes
+        .map((n) => {
+          const sub = subjects.find((s) => s.id === n.subjectId);
+          return `- Note: "${n.title}" (${sub?.name || 'Subject'})`;
+        })
+        .join('\n');
+    }
+
+    // Load syllabus details for focused subject
+    let syllabusDetails = '';
+    if (isFocus) {
+      const activeSyllabus = syllabi.find(s => s.subjectId === focusSubjectId);
+      if (activeSyllabus && activeSyllabus.notes) {
+        syllabusDetails = `Syllabus Overview for ${activeSub?.name}:\n${activeSyllabus.notes}`;
+      }
+    }
 
     return `You are Shiv, an intelligent, friendly, and encouraging AI Study Assistant integrated into the user's Academic Planner app.
 Your goals:
@@ -97,16 +171,23 @@ Your goals:
 4. Answer planner-related questions based on their live dashboard statistics.
 
 Current Date: ${new Date().toLocaleDateString()}
+
+${isFocus ? `[ACTIVE FOCUS] You are currently focusing on the subject: "${activeSub?.name}" ${activeSub?.icon}. Tailor your advice primarily to this subject unless the user asks otherwise.` : ''}
+
 User's Real-Time Planner Dashboard Data:
 - Student Name: ${studentName}
 - Current Study Streak: 🔥 ${streak} day${streak !== 1 ? 's' : ''}
 - Study Hours This Week: ⚡ ${hours} hour${hours !== 1 ? 's' : ''} logged
-- Completed Assignments: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed / total) * 100) : 0}% completion)
+- Completed Assignments: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed / total) * 100) : 0}% completion for ${isFocus ? activeSub?.name : 'all subjects'})
 - Total Saved Course Notes: 📝 ${studyNotes.length} note(s)
 - Total Course Syllabus Files: 📚 ${syllabi.length} file(s)
 
 - Registered Subjects (${subjects.length}):
 ${subjectListStr || 'No subjects created yet.'}
+
+${isFocus ? `Syllabus & Course Notes Content for "${activeSub?.name}":` : 'Saved Notes Titles:'}
+${detailedNotesStr || 'No notes created yet.'}
+${syllabusDetails ? `\n${syllabusDetails}` : ''}
 
 - Overdue Assignments (${overdue.length}):
 ${overdueStr || 'None. Great job!'}
@@ -117,12 +198,10 @@ ${upcomingStr || 'None in the next 7 days.'}
 - Scheduled Exams (${exams.length}):
 ${examStr || 'No exams scheduled.'}
 
-- Saved Notes:
-${notesStr || 'No notes created yet.'}
-
 Instructions:
 - Always answer user questions accurately, intelligently, and comprehensively. You have the knowledge of a college professor and a helpful peer.
 - If the user asks general questions (e.g. math problems, coding questions, science queries), solve them fully and explain the steps clearly.
+- If the user asks you to quiz them, generate a 3-question quiz based on the notes contents or syllabus provided above. Wait for them to answer.
 - Refer to the user as "${studentName}".
 - Format your response nicely using Markdown (bold text, bullet points, headers, or code blocks if relevant).
 - Keep responses engaging but concise. Avoid long paragraphs; prefer bullet points.`;
@@ -360,6 +439,141 @@ Instructions:
     }
   };
 
+  // Safe markdown formatting renderer
+  function renderMessageText(text: string) {
+    const parts: React.ReactNode[] = [];
+    const codeBlockRegex = /```(\w*)\n([\s\S]*?)```/g;
+    let match;
+    let lastIndex = 0;
+    let index = 0;
+
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      const textBefore = text.substring(lastIndex, match.index);
+      const lang = match[1];
+      const code = match[2];
+
+      if (textBefore) {
+        parts.push(renderInlineMarkdown(textBefore, `text-${index}`));
+        index++;
+      }
+
+      parts.push(
+        <div key={`code-${index}`} className="my-3 rounded-xl overflow-hidden border border-[var(--glass-border)] bg-slate-900 shadow-md">
+          {lang && (
+            <div className="flex justify-between items-center px-4 py-2 bg-slate-800/80 text-[10px] font-mono text-slate-400 border-b border-slate-700/50">
+              <span>{lang.toUpperCase()}</span>
+              <button
+                onClick={() => navigator.clipboard.writeText(code)}
+                className="hover:text-white transition-colors text-[10px] px-1.5 py-0.5 rounded bg-slate-700/50 hover:bg-slate-700 font-semibold"
+              >
+                Copy
+              </button>
+            </div>
+          )}
+          <pre className="p-4 text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre">
+            <code>{code}</code>
+          </pre>
+        </div>
+      );
+      index++;
+      lastIndex = codeBlockRegex.lastIndex;
+    }
+
+    const textAfter = text.substring(lastIndex);
+    if (textAfter) {
+      parts.push(renderInlineMarkdown(textAfter, `text-${index}`));
+    }
+
+    return <div className="space-y-2">{parts}</div>;
+  }
+
+  function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode {
+    const lines = text.split('\n');
+    return (
+      <div key={keyPrefix} className="space-y-1.5">
+        {lines.map((line, lineIdx) => {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('### ')) {
+            return (
+              <h4 key={`${keyPrefix}-${lineIdx}`} className="text-sm font-bold text-indigo-400 pt-2 pb-0.5">
+                {parseLineFormatting(trimmed.substring(4))}
+              </h4>
+            );
+          }
+          if (trimmed.startsWith('## ')) {
+            return (
+              <h3 key={`${keyPrefix}-${lineIdx}`} className="text-base font-extrabold text-indigo-400 pt-3 pb-1">
+                {parseLineFormatting(trimmed.substring(3))}
+              </h3>
+            );
+          }
+          if (trimmed.startsWith('# ')) {
+            return (
+              <h2 key={`${keyPrefix}-${lineIdx}`} className="text-lg font-black text-indigo-400 pt-4 pb-1">
+                {parseLineFormatting(trimmed.substring(2))}
+              </h2>
+            );
+          }
+
+          if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            return (
+              <div key={`${keyPrefix}-${lineIdx}`} className="flex items-start gap-2 pl-2">
+                <span className="text-indigo-400 mt-1.5 text-[8px]">•</span>
+                <span className="flex-1 text-sm">{parseLineFormatting(trimmed.substring(2))}</span>
+              </div>
+            );
+          }
+
+          const numMatch = trimmed.match(/^(\d+)\.\s(.*)/);
+          if (numMatch) {
+            return (
+              <div key={`${keyPrefix}-${lineIdx}`} className="flex items-start gap-2 pl-2">
+                <span className="text-indigo-400 font-mono text-xs mt-0.5">{numMatch[1]}.</span>
+                <span className="flex-1 text-sm">{parseLineFormatting(numMatch[2])}</span>
+              </div>
+            );
+          }
+
+          return (
+            <p key={`${keyPrefix}-${lineIdx}`} className="text-sm leading-relaxed min-h-[1rem]">
+              {parseLineFormatting(line)}
+            </p>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function parseLineFormatting(text: string): React.ReactNode[] {
+    const parts: React.ReactNode[] = [];
+    const boldCodeRegex = /(\*\*([^*]+)\*\*|`([^`]+)`)/g;
+    let match;
+    let lastIndex = 0;
+    let idx = 0;
+
+    while ((match = boldCodeRegex.exec(text)) !== null) {
+      const textBefore = text.substring(lastIndex, match.index);
+      if (textBefore) {
+        parts.push(textBefore);
+      }
+
+      if (match[0].startsWith('**')) {
+        parts.push(<strong key={`bold-${idx}`} className="font-semibold text-indigo-200">{match[2]}</strong>);
+      } else {
+        parts.push(<code key={`code-${idx}`} className="px-1.5 py-0.5 rounded bg-slate-800 text-xs font-mono text-indigo-300 border border-slate-700/60">{match[3]}</code>);
+      }
+      idx++;
+      lastIndex = boldCodeRegex.lastIndex;
+    }
+
+    const textAfter = text.substring(lastIndex);
+    if (textAfter) {
+      parts.push(textAfter);
+    }
+
+    return parts;
+  }
+
   return (
     <div className="animate-fade-in flex flex-col h-[calc(100vh-100px)]">
       <Header title="AI Study Assistant" subtitle="Clarify doubts, explain concepts, and analyze planning tips with Shiv" />
@@ -368,6 +582,78 @@ Instructions:
       <div className="flex-1 glass-card overflow-hidden flex flex-col z-10 relative">
         {/* Glow overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.02] to-transparent pointer-events-none" />
+
+        {/* Chat Toolbar */}
+        <div className="px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--glass-bg-light)] flex flex-wrap items-center justify-between gap-3 z-20 relative">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--color-text-secondary)]">Focus Subject:</span>
+            <select
+              value={focusSubjectId}
+              onChange={(e) => setFocusSubjectId(e.target.value)}
+              className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded-xl text-xs px-3 py-1.5 text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+            >
+              <option value="all">🌐 All Subjects (Dashboard Context)</option>
+              {subjects.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.icon} {sub.name}
+                </option>
+              ))}
+            </select>
+            {focusSubjectId !== 'all' && (
+              <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 font-semibold border border-indigo-500/20 animate-pulse">
+                Subject Context Loaded
+              </span>
+            )}
+          </div>
+
+          <div>
+            <button
+              onClick={() => {
+                if (window.confirm('Clear conversation history?')) {
+                  setMessages([
+                    {
+                      id: 'welcome',
+                      sender: 'shiv',
+                      text: `Hello, ${studentName}! I'm Shiv, your personal AI Study Assistant. I can clarify any academic doubts, solve equations, suggest study schedules, explain scientific learning strategies, and analyze your dashboard performance. What would you like to focus on today?`,
+                      timestamp: new Date(),
+                      suggestions: [
+                        'Suggest a study plan',
+                        'Check my urgent deadlines',
+                        'How can I study better?',
+                        'Show my stats overview',
+                      ],
+                    },
+                  ]);
+                }
+              }}
+              className="text-xs text-[var(--color-text-muted)] hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/5 font-medium"
+            >
+              Clear Chat
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Study Actions Bar */}
+        <div className="flex flex-wrap gap-2 px-4 py-2.5 border-b border-[var(--glass-border)] bg-[var(--glass-bg-light)]/40 z-10">
+          <button
+            onClick={() => handleSend("Give me a quick 3-question quiz based on my study notes or syllabus!")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-violet-500/10 hover:bg-violet-500/15 text-violet-400 border border-violet-500/20 transition-all active:scale-95 animate-fade-in"
+          >
+            ✏️ Quiz Me
+          </button>
+          <button
+            onClick={() => handleSend("Can you plan my study sessions for today based on my upcoming deadlines?")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 transition-all active:scale-95 animate-fade-in"
+          >
+            📅 Plan My Day
+          </button>
+          <button
+            onClick={() => handleSend("Explain a difficult concept from my syllabus using the Feynman Technique.")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 transition-all active:scale-95 animate-fade-in"
+          >
+            💡 Explain Concept
+          </button>
+        </div>
 
         {/* Chat Messages */}
         <div className="flex-1 p-4 md:p-6 overflow-y-auto space-y-4 no-scrollbar">
@@ -392,13 +678,13 @@ Instructions:
                 {/* Bubble */}
                 <div className="space-y-2 max-w-full overflow-hidden">
                   <div
-                    className={`p-3.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap border break-words ${
+                    className={`p-3.5 rounded-2xl border break-words ${
                       isShiv
                         ? 'bg-[var(--glass-bg-light)] text-[var(--color-text-primary)] border-[var(--glass-border)] rounded-tl-sm'
                         : 'bg-indigo-600 text-white border-indigo-500 rounded-tr-sm shadow-md shadow-indigo-600/10'
                     }`}
                   >
-                    {msg.text}
+                    {isShiv ? renderMessageText(msg.text) : <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</p>}
                   </div>
 
                   {/* Suggestions */}
@@ -408,7 +694,7 @@ Instructions:
                         <button
                           key={s}
                           onClick={() => handleSend(s)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all text-left"
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all text-left animate-fade-in"
                         >
                           {s}
                         </button>
@@ -446,7 +732,7 @@ Instructions:
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSend(input);
             }}
-            placeholder="Ask Shiv to clarify doubts or suggest plans..."
+            placeholder="Ask Shiv to clarify doubts, quiz you, or solve problems..."
             className="flex-1 glass-input py-3"
             disabled={isTyping}
           />
