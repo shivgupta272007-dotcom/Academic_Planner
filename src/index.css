@@ -239,3 +239,75 @@
     scrollbar-width: none;
   }
 }
+
+/* Print styles for export to PDF/Printing */
+@media print {
+  html, body {
+    background: white !important;
+    color: #0f172a !important;
+    font-size: 11px !important;
+  }
+
+  /* Hide navigation, headers, bells, buttons, and floating summoning button */
+  aside,
+  header,
+  .floating-ai-summon,
+  .reminder-bell,
+  button,
+  select,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure the workspace takes full paper width */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Remove glass effects and render clean background blocks */
+  .glass-card {
+    background: white !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Retain colors for subject badges and borders during print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Expand time slot container to print fully without scrollbars */
+  .max-h-\[600px\] {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Clean up grid layout borders and headers */
+  .grid-cols-8 {
+    border-color: #cbd5e1 !important;
+  }
+
+  .border-b {
+    border-bottom-color: #cbd5e1 !important;
+  }
+
+  .border-l {
+    border-left-color: #cbd5e1 !important;
+  }
+
+  .text-\[var\(--color-text-muted\)\] {
+    color: #64748b !important;
+  }
+
+  .text-\[var\(--color-text-primary\)\] {
+    color: #0f172a !important;
+  }
+}
+

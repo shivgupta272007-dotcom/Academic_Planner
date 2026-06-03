@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, Calendar, Printer } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
@@ -16,10 +16,13 @@ import {
 } from '../../utils/dates';
 import { HOURS_OF_DAY } from '../../utils/constants';
 import type { StudySession } from '../../types';
+import { exportToICS } from '../../utils/ics';
 
 export default function WeeklyCalendar() {
   const {
     studySessions,
+    exams,
+    subjects,
     getSubjectById,
     addStudySession,
     updateStudySession,
@@ -86,7 +89,25 @@ export default function WeeklyCalendar() {
             {format(weekDays[0], 'MMM d')} – {format(weekDays[6], 'MMM d, yyyy')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 no-print">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => exportToICS(studySessions, exams, subjects)}
+            icon={<Calendar size={14} />}
+            title="Sync schedule to Google Calendar, Outlook, or Apple iCal"
+          >
+            Sync iCal
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.print()}
+            icon={<Printer size={14} />}
+            title="Export weekly plan as PDF or print"
+          >
+            Print / PDF
+          </Button>
           <Button
             variant="ghost"
             size="sm"
