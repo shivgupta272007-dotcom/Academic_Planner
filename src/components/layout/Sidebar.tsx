@@ -14,6 +14,7 @@ import {
   Bookmark,
   Sparkles,
   Link,
+  X,
 } from 'lucide-react';
 
 const navItems = [
@@ -33,9 +34,10 @@ const navItems = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  onCloseMobile?: () => void;
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle, onCloseMobile }: SidebarProps) {
   return (
     <aside
       className={`
@@ -45,16 +47,27 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ${collapsed ? 'w-[72px]' : 'w-[260px]'}
       `}
     >
-      {/* Logo */}
-      <div className="flex items-center gap-3 p-5 pb-4">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20">
-          <GraduationCap size={20} className="text-white" />
-        </div>
-        {!collapsed && (
-          <div className="animate-fade-in">
-            <h1 className="text-sm font-bold gradient-text">Academic</h1>
-            <h1 className="text-sm font-bold gradient-text -mt-0.5">Planner</h1>
+      {/* Logo & Mobile Close button */}
+      <div className="flex items-center justify-between p-5 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-500/20">
+            <GraduationCap size={20} className="text-white" />
           </div>
+          {!collapsed && (
+            <div className="animate-fade-in">
+              <h1 className="text-sm font-bold gradient-text">Academic</h1>
+              <h1 className="text-sm font-bold gradient-text -mt-0.5">Planner</h1>
+            </div>
+          )}
+        </div>
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="md:hidden p-1.5 rounded-lg hover:bg-[var(--glass-bg-light)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+            title="Close menu"
+          >
+            <X size={18} />
+          </button>
         )}
       </div>
 
@@ -65,6 +78,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             key={path}
             to={path}
             end={path === '/'}
+            onClick={() => onCloseMobile?.()}
             className={({ isActive }) => `
               flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
               transition-all duration-200 group
