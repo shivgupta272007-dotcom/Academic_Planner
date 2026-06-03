@@ -79,4 +79,5 @@ export const STORAGE_KEYS = {
   studyNotes: 'academic-planner-study-notes',
   exams: 'academic-planner-exams',
   syllabi: 'academic-planner-syllabi',
+  studyResources: 'academic-planner-resources',
 };

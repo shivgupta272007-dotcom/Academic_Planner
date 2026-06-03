@@ -11,6 +11,7 @@ import type {
   StudyNote,
   Exam,
   Syllabus,
+  StudyResource,
 } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { DEFAULT_SUBJECTS, DEFAULT_SETTINGS, STORAGE_KEYS } from '../utils/constants';
@@ -25,6 +26,7 @@ interface AppState {
   studyNotes: StudyNote[];
   exams: Exam[];
   syllabi: Syllabus[];
+  studyResources: StudyResource[];
 }
 
 type AppAction =
@@ -54,7 +56,9 @@ type AppAction =
   | { type: 'ADD_EXAM'; payload: Exam }
   | { type: 'DELETE_EXAM'; payload: string }
   | { type: 'ADD_SYLLABUS'; payload: Syllabus }
-  | { type: 'DELETE_SYLLABUS'; payload: string };
+  | { type: 'DELETE_SYLLABUS'; payload: string }
+  | { type: 'ADD_STUDY_RESOURCE'; payload: StudyResource }
+  | { type: 'DELETE_STUDY_RESOURCE'; payload: string };
 
 const initialState: AppState = {
   subjects: loadFromStorage(STORAGE_KEYS.subjects, DEFAULT_SUBJECTS),
@@ -66,6 +70,7 @@ const initialState: AppState = {
   studyNotes: loadFromStorage(STORAGE_KEYS.studyNotes, []),
   exams: loadFromStorage(STORAGE_KEYS.exams, []),
   syllabi: loadFromStorage(STORAGE_KEYS.syllabi, []),
+  studyResources: loadFromStorage(STORAGE_KEYS.studyResources, []),
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -90,6 +95,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         studyNotes: state.studyNotes.filter((n) => n.subjectId !== action.payload),
         exams: state.exams.filter((e) => e.subjectId !== action.payload),
         syllabi: state.syllabi.filter((s) => s.subjectId !== action.payload),
+        studyResources: state.studyResources.filter((r) => r.subjectId !== action.payload),
       };
     case 'SET_ASSIGNMENTS':
       return { ...state, assignments: action.payload };
@@ -196,6 +202,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
     }
     case 'DELETE_SYLLABUS':
       return { ...state, syllabi: state.syllabi.filter((s) => s.id !== action.payload) };
+    case 'ADD_STUDY_RESOURCE':
+      return { ...state, studyResources: [...state.studyResources, action.payload] };
+    case 'DELETE_STUDY_RESOURCE':
+      return { ...state, studyResources: state.studyResources.filter((r) => r.id !== action.payload) };
     case 'RESET_ALL':
       return {
         subjects: DEFAULT_SUBJECTS,
@@ -207,6 +217,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         studyNotes: [],
         exams: [],
         syllabi: [],
+        studyResources: [],
       };
     default:
       return state;
@@ -239,6 +250,8 @@ interface AppContextType extends AppState {
   deleteExam: (id: string) => void;
   saveSyllabus: (syllabus: Omit<Syllabus, 'id' | 'createdAt'>) => void;
   deleteSyllabus: (id: string) => void;
+  addStudyResource: (resource: Omit<StudyResource, 'id' | 'createdAt'>) => void;
+  deleteStudyResource: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -282,6 +295,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.syllabi, state.syllabi);
   }, [state.syllabi]);
+
+  useEffect(() => {
+    saveToStorage(STORAGE_KEYS.studyResources, state.studyResources);
+  }, [state.studyResources]);
 
   const addSubject = useCallback(
     (name: string, color: string, icon: string) => {
@@ -468,6 +485,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'DELETE_SYLLABUS', payload: id });
   }, []);
 
+  const addStudyResource = useCallback(
+    (resource: Omit<StudyResource, 'id' | 'createdAt'>) => {
+      dispatch({
+        type: 'ADD_STUDY_RESOURCE',
+        payload: { ...resource, id: uuidv4(), createdAt: new Date().toISOString() },
+      });
+    },
+    []
+  );
+
+  const deleteStudyResource = useCallback((id: string) => {
+    dispatch({ type: 'DELETE_STUDY_RESOURCE', payload: id });
+  }, []);
+
   const value: AppContextType = {
     ...state,
     dispatch,
@@ -495,6 +526,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteExam,
     saveSyllabus,
     deleteSyllabus,
+    addStudyResource,
+    deleteStudyResource,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

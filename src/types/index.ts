@@ -125,6 +125,16 @@ export interface Syllabus {
   };
 }
 
+export interface StudyResource {
+  id: string;
+  subjectId: string;
+  title: string;
+  url: string;
+  description?: string;
+  category: 'website' | 'video' | 'book' | 'article' | 'other';
+  createdAt: string;
+}
+
 export type Priority = Assignment['priority'];
 export type Status = Assignment['status'];
 export type SessionStatus = StudySession['status'];

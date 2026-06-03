@@ -22,6 +22,7 @@ export default function AssistantPage() {
     exams,
     syllabi,
     settings,
+    studyResources,
   } = useApp();
 
   const studentName = settings.userName || 'Student';
@@ -139,6 +140,17 @@ export default function AssistantPage() {
       })
       .join('\n');
 
+    const filteredResources = isFocus
+      ? studyResources.filter((r) => r.subjectId === focusSubjectId)
+      : studyResources;
+
+    const resourceStr = filteredResources
+      .map((r) => {
+        const sub = r.subjectId !== 'general' ? subjects.find((s) => s.id === r.subjectId) : null;
+        return `- Resource: "${r.title}" (${sub?.name || 'General Reference'}) — Category: ${r.category} — Link: ${r.url}${r.description ? ` (Notes: ${r.description})` : ''}`;
+      })
+      .join('\n');
+
     // Load full notes contents for focused subject
     let detailedNotesStr = '';
     if (isFocus) {
@@ -181,9 +193,13 @@ User's Real-Time Planner Dashboard Data:
 - Completed Assignments: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed / total) * 100) : 0}% completion for ${isFocus ? activeSub?.name : 'all subjects'})
 - Total Saved Course Notes: 📝 ${studyNotes.length} note(s)
 - Total Course Syllabus Files: 📚 ${syllabi.length} file(s)
+- Total Saved Study Resource Links: 🔗 ${studyResources.length} link(s)
 
 - Registered Subjects (${subjects.length}):
 ${subjectListStr || 'No subjects created yet.'}
+
+- Study Resources (${filteredResources.length}):
+${resourceStr || 'No study resources saved yet.'}
 
 ${isFocus ? `Syllabus & Course Notes Content for "${activeSub?.name}":` : 'Saved Notes Titles:'}
 ${detailedNotesStr || 'No notes created yet.'}

@@ -13,6 +13,7 @@ import {
   Award,
   Bookmark,
   Sparkles,
+  Link,
 } from 'lucide-react';
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { path: '/exams', icon: Award, label: 'Exams' },
   { path: '/syllabus', icon: Bookmark, label: 'Syllabus' },
   { path: '/assistant', icon: Sparkles, label: 'AI Shiv' },
+  { path: '/resources', icon: Link, label: 'Resources' },
   { path: '/pomodoro', icon: Timer, label: 'Pomodoro' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
