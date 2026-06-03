@@ -39,8 +39,10 @@ export default function Layout() {
       {/* Sidebar (drawer on mobile, sidebar on desktop) */}
       <div
         className={`
-          fixed md:sticky top-0 left-0 h-screen z-40 transition-transform duration-300 ease-out
+          fixed md:sticky top-0 left-0 h-screen z-40 transition-all duration-300 ease-out flex-shrink-0
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          ${sidebarCollapsed ? 'md:w-[72px]' : 'md:w-[260px]'}
+          w-[260px]
         `}
       >
         <Sidebar
