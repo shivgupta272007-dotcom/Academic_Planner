@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { Sparkles } from 'lucide-react';
 
 export default function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-primary)] bg-grid-pattern relative overflow-hidden">
@@ -27,6 +29,15 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Floating AI Summon Button */}
+      <button
+        onClick={() => navigate('/assistant')}
+        className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/45 hover:scale-105 active:scale-95 transition-all duration-200 z-50 group border border-indigo-400/20"
+        title="Ask Shiv (AI Study Assistant)"
+      >
+        <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />
+      </button>
     </div>
   );
 }

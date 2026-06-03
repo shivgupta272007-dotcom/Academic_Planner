@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage';
 import NotesPage from './pages/NotesPage';
 import ExamsPage from './pages/ExamsPage';
 import SyllabusPage from './pages/SyllabusPage';
+import AssistantPage from './pages/AssistantPage';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
                   <Route path="/notes" element={<NotesPage />} />
                   <Route path="/exams" element={<ExamsPage />} />
                   <Route path="/syllabus" element={<SyllabusPage />} />
+                  <Route path="/assistant" element={<AssistantPage />} />
                   <Route path="/pomodoro" element={<PomodoroPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Route>
