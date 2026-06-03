@@ -76,9 +76,17 @@ export default function SubjectList() {
           return (
             <div
               key={subject.id}
-              className="glass-card p-5 hover:shadow-glass transition-all duration-300 animate-slide-up group"
-              style={{ animationDelay: `${index * 50}ms` }}
+              className="glass-card p-5 transition-all duration-300 animate-slide-up group relative overflow-hidden"
+              style={{ 
+                animationDelay: `${index * 50}ms`,
+                boxShadow: `0 4px 24px -4px ${subject.color}15, 0 2px 10px -2px ${subject.color}08`,
+              }}
             >
+              {/* Subject Color Accent Header Strip */}
+              <div 
+                className="absolute top-0 left-0 w-full h-[3px]"
+                style={{ backgroundColor: subject.color }}
+              />
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div

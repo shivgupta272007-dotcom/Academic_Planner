@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Filter, ClipboardList } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import emptyImage from '../../assets/empty.png';
 import AssignmentCard from './AssignmentCard';
 import AssignmentForm from './AssignmentForm';
 import Modal from '../ui/Modal';
@@ -176,7 +177,8 @@ export default function AssignmentList() {
       {/* Assignment list */}
       {filteredAssignments.length === 0 ? (
         <EmptyState
-          icon={<ClipboardList size={28} className="text-indigo-400" />}
+          image={assignments.length === 0 ? emptyImage : undefined}
+          icon={assignments.length > 0 ? <ClipboardList size={28} className="text-indigo-400" /> : undefined}
           title={assignments.length === 0 ? 'No assignments yet' : 'No matching assignments'}
           description={
             assignments.length === 0
