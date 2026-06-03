@@ -81,6 +81,7 @@ export interface AppSettings {
   theme: 'dark' | 'light' | 'system';
   pomodoro: PomodoroSettings;
   notifications: NotificationSettings;
+  userName?: string;
 }
 
 export interface StudyNote {

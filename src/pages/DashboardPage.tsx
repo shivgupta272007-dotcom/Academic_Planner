@@ -8,9 +8,11 @@ import Button from '../components/ui/Button';
 import { Plus, Play, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import heroImage from '../assets/hero.png';
+import { useApp } from '../contexts/AppContext';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { settings } = useApp();
 
   return (
     <div className="animate-fade-in">
@@ -23,7 +25,7 @@ export default function DashboardPage() {
       <div className="glass-card overflow-hidden p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-r from-indigo-500/10 via-violet-500/5 to-cyan-500/5 relative border border-indigo-500/10 shadow-lg">
         <div className="flex-1 space-y-3 z-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/15 text-indigo-400 border border-indigo-500/20">
-            <span>✨ Welcome back, Student!</span>
+            <span>✨ Welcome back, {settings.userName || 'Student'}!</span>
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
             Ready to crush your <span className="gradient-text">Academic Goals</span> today?

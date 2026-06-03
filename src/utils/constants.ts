@@ -48,6 +48,7 @@ export const DEFAULT_SUBJECTS: Subject[] = [
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
+  userName: 'Student',
   pomodoro: {
     focusDuration: 25,
     shortBreakDuration: 5,

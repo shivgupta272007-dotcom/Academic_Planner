@@ -14,13 +14,23 @@ interface Message {
 }
 
 export default function AssistantPage() {
-  const { assignments, subjects, pomodoroSessions } = useApp();
+  const {
+    assignments,
+    subjects,
+    pomodoroSessions,
+    studyNotes,
+    exams,
+    syllabi,
+    settings,
+  } = useApp();
+
+  const studentName = settings.userName || 'Student';
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       sender: 'shiv',
-      text: "Hello! I'm Shiv, your personal AI Study Assistant. I can analyze your dashboard, suggest study schedules, clarify learning strategies, and help you stay on track. What would you like to focus on today?",
+      text: `Hello, ${studentName}! I'm Shiv, your personal AI Study Assistant. I can clarify any academic doubts, solve equations, suggest study schedules, explain scientific learning strategies, and analyze your dashboard performance. What would you like to focus on today?`,
       timestamp: new Date(),
       suggestions: [
         'Suggest a study plan',
@@ -38,7 +48,87 @@ export default function AssistantPage() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Response generation logic based on app data and keywords
+  const getSystemPrompt = () => {
+    const overdue = getOverdueAssignments(assignments);
+    const upcoming = getUpcomingAssignments(assignments, 7);
+    const streak = calculateStreak(assignments);
+    const hours = getStudyHoursThisWeek(pomodoroSessions);
+    const completed = assignments.filter((a) => a.status === 'completed').length;
+    const total = assignments.length;
+
+    const subjectListStr = subjects
+      .map((s) => `- ${s.name} (Icon: ${s.icon})`)
+      .join('\n');
+
+    const overdueStr = overdue
+      .map((a) => {
+        const sub = subjects.find((s) => s.id === a.subjectId);
+        return `- ${a.title} (${sub?.name || 'Subject'}) — was due: ${a.dueDate} (Priority: ${a.priority})`;
+      })
+      .join('\n');
+
+    const upcomingStr = upcoming
+      .map((a) => {
+        const sub = subjects.find((s) => s.id === a.subjectId);
+        const left = getDaysUntilDue(a.dueDate);
+        return `- ${a.title} (${sub?.name || 'Subject'}) — due in ${left} day${left !== 1 ? 's' : ''} on ${a.dueDate} (Priority: ${a.priority})`;
+      })
+      .join('\n');
+
+    const examStr = exams
+      .map((e) => {
+        const sub = subjects.find((s) => s.id === e.subjectId);
+        return `- ${e.title} (${sub?.name || 'Subject'}) on ${e.date} at ${e.time}${e.room ? ` in Room ${e.room}` : ''}`;
+      })
+      .join('\n');
+
+    const notesStr = studyNotes
+      .map((n) => {
+        const sub = subjects.find((s) => s.id === n.subjectId);
+        return `- ${n.title} (${sub?.name || 'Subject'})`;
+      })
+      .join('\n');
+
+    return `You are Shiv, an intelligent, friendly, and encouraging AI Study Assistant integrated into the user's Academic Planner app.
+Your goals:
+1. Address the user by their name, "${studentName}".
+2. Help the user clarify any academic doubts (solve science, programming, math, history, literature, or any general questions they ask).
+3. Offer suggestions on time management, productivity, and study schedules. Suggest techniques like Pomodoro, Active Recall, Feynman technique, and Spaced Repetition.
+4. Answer planner-related questions based on their live dashboard statistics.
+
+Current Date: ${new Date().toLocaleDateString()}
+User's Real-Time Planner Dashboard Data:
+- Student Name: ${studentName}
+- Current Study Streak: 🔥 ${streak} day${streak !== 1 ? 's' : ''}
+- Study Hours This Week: ⚡ ${hours} hour${hours !== 1 ? 's' : ''} logged
+- Completed Assignments: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed / total) * 100) : 0}% completion)
+- Total Saved Course Notes: 📝 ${studyNotes.length} note(s)
+- Total Course Syllabus Files: 📚 ${syllabi.length} file(s)
+
+- Registered Subjects (${subjects.length}):
+${subjectListStr || 'No subjects created yet.'}
+
+- Overdue Assignments (${overdue.length}):
+${overdueStr || 'None. Great job!'}
+
+- Upcoming Assignments (next 7 days, ${upcoming.length}):
+${upcomingStr || 'None in the next 7 days.'}
+
+- Scheduled Exams (${exams.length}):
+${examStr || 'No exams scheduled.'}
+
+- Saved Notes:
+${notesStr || 'No notes created yet.'}
+
+Instructions:
+- Always answer user questions accurately, intelligently, and comprehensively. You have the knowledge of a college professor and a helpful peer.
+- If the user asks general questions (e.g. math problems, coding questions, science queries), solve them fully and explain the steps clearly.
+- Refer to the user as "${studentName}".
+- Format your response nicely using Markdown (bold text, bullet points, headers, or code blocks if relevant).
+- Keep responses engaging but concise. Avoid long paragraphs; prefer bullet points.`;
+  };
+
+  // Response generation logic based on app data and keywords (Fallback Local Engine)
   const generateResponse = (query: string): { text: string; suggestions?: string[] } => {
     const q = query.toLowerCase();
 
@@ -49,12 +139,12 @@ export default function AssistantPage() {
 
       if (overdue.length === 0 && upcoming.length === 0) {
         return {
-          text: "Fantastic news! You have no overdue or upcoming assignments due in the next 7 days. Enjoy the free slot or check the **Syllabus** section to get ahead!",
+          text: `Fantastic news, ${studentName}! You have no overdue or upcoming assignments due in the next 7 days. Enjoy the free slot or check the **Syllabus** section to get ahead!`,
           suggestions: ['Explain spaced repetition', 'Suggest a study plan'],
         };
       }
 
-      let responseText = "Here is what needs your attention immediately:\n\n";
+      let responseText = `Here is what needs your attention immediately, ${studentName}:\n\n`;
       if (overdue.length > 0) {
         responseText += `⚠️ **Overdue Assignments (${overdue.length}):**\n`;
         overdue.slice(0, 3).forEach((a) => {
@@ -89,7 +179,7 @@ export default function AssistantPage() {
         const first = overdue[0];
         const sub = subjects.find((s) => s.id === first.subjectId);
         return {
-          text: `Based on your agenda, you should prioritize **${first.title}** for ${sub?.icon} ${sub?.name}. It is currently overdue! \n\n**Proposed study block for today:**\n- **Session 1 (25m)**: Outline the core tasks for "${first.title}".\n- **Break (5m)**: Walk around, stretch.\n- **Session 2 (25m)**: Write the first half.\n\nWould you like me to guide you on how to start?`,
+          text: `Based on your agenda, ${studentName}, you should prioritize **${first.title}** for ${sub?.icon} ${sub?.name}. It is currently overdue! \n\n**Proposed study block for today:**\n- **Session 1 (25m)**: Outline the core tasks for "${first.title}".\n- **Break (5m)**: Walk around, stretch.\n- **Session 2 (25m)**: Write the first half.\n\nWould you like me to guide you on how to start?`,
           suggestions: ['Yes, explain Pomodoro', 'Check my urgent deadlines'],
         };
       }
@@ -98,13 +188,13 @@ export default function AssistantPage() {
         const first = upcoming[0];
         const sub = subjects.find((s) => s.id === first.subjectId);
         return {
-          text: `You have "${first.title}" due soon. Let's get ahead of it!\n\n**Study Plan:**\n- Plan a **45-minute focus block** on **${sub?.name || 'Subject'}** today.\n- Focus strictly on completing the research portion.\n- Follow up with a 15-minute review session tomorrow.`,
+          text: `You have "${first.title}" due soon, ${studentName}. Let's get ahead of it!\n\n**Study Plan:**\n- Plan a **45-minute focus block** on **${sub?.name || 'Subject'}** today.\n- Focus strictly on completing the research portion.\n- Follow up with a 15-minute review session tomorrow.`,
           suggestions: ['How to focus better', 'Show my stats overview'],
         };
       }
 
       return {
-        text: "Since you have no upcoming deadlines, this is the perfect time to build your skills! I suggest setting up a **45-minute review block** for your most challenging subject. Check the **Syllabus** tab to review modules.",
+        text: `Since you have no upcoming deadlines, ${studentName}, this is the perfect time to build your skills! I suggest setting up a **45-minute review block** for your most challenging subject. Check the **Syllabus** tab to review modules.`,
         suggestions: ['How can I study better?', 'Review my subjects'],
       };
     }
@@ -117,7 +207,7 @@ export default function AssistantPage() {
       const total = assignments.length;
 
       return {
-        text: `Here is your academic dashboard analysis 📊:\n\n- **Current Study Streak**: 🔥 ${streak} day${streak !== 1 ? 's' : ''}\n- **Focus Hours (This Week)**: ⚡ ${hours} hour${hours !== 1 ? 's' : ''} logged\n- **Assignments Finished**: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed/total)*100) : 0}% completion rate)\n\n${streak > 0 ? 'Fantastic streak! Keep logging daily sessions to keep the flame burning!' : 'Complete an assignment today to start your study streak!'}`,
+        text: `Here is your academic dashboard analysis, ${studentName} 📊:\n\n- **Current Study Streak**: 🔥 ${streak} day${streak !== 1 ? 's' : ''}\n- **Focus Hours (This Week)**: ⚡ ${hours} hour${hours !== 1 ? 's' : ''} logged\n- **Assignments Finished**: ✅ ${completed} of ${total} (${total > 0 ? Math.round((completed/total)*100) : 0}% completion rate)\n\n${streak > 0 ? 'Fantastic streak! Keep logging daily sessions to keep the flame burning!' : 'Complete an assignment today to start your study streak!'}`,
         suggestions: ['Suggest a study plan', 'Check my urgent deadlines'],
       };
     }
@@ -157,19 +247,19 @@ export default function AssistantPage() {
     // 5. Default greeting & general conversation
     if (q.includes('hello') || q.includes('hi') || q.includes('hey') || q.includes('shiv')) {
       return {
-        text: "Hey there! I am Shiv. I'm ready to help you coordinate your studies, check deadlines, or explain complex concepts. What can I do for you?",
+        text: `Hey there, ${studentName}! I am Shiv. I'm ready to help you coordinate your studies, check deadlines, or explain complex concepts. What can I do for you today?`,
         suggestions: ['Suggest a study plan', 'Check my urgent deadlines', 'Show my stats overview'],
       };
     }
 
     // Default fallback
     return {
-      text: "I understand! As your study assistant, I'm here to support your learning. Let's make sure your assignments are in order, log some focus hours, and review the syllabus. \n\nIf you have a specific doubt, ask me to explain study techniques (like active recall or spaced repetition), suggest a study schedule, or check your stats!",
+      text: `I understand! As your study assistant, I'm here to support your learning, ${studentName}. Let's make sure your assignments are in order, log some focus hours, and review the syllabus. \n\nIf you have a specific doubt, ask me to explain study techniques (like active recall or spaced repetition), suggest a study schedule, or check your stats!`,
       suggestions: ['Suggest a study plan', 'How can I study better?', 'Show my stats overview'],
     };
   };
 
-  const handleSend = (textToSend: string) => {
+  const handleSend = async (textToSend: string) => {
     if (!textToSend.trim()) return;
 
     const userMessage: Message = {
@@ -183,19 +273,91 @@ export default function AssistantPage() {
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI thinking delay
-    setTimeout(() => {
-      const response = generateResponse(textToSend);
+    const historyPayload = messages.slice(-10).map((msg) => ({
+      role: msg.sender === 'user' ? 'user' : 'assistant',
+      content: msg.text,
+    }));
+
+    try {
+      const systemPrompt = getSystemPrompt();
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const response = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...historyPayload,
+            { role: 'user', content: textToSend },
+          ],
+          model: 'openai',
+          private: true,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API returned status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const replyText = data.choices?.[0]?.message?.content;
+
+      if (!replyText) {
+        throw new Error('Empty response from Pollinations API');
+      }
+
+      // Generate dynamic suggestions based on reply context
+      const suggestions: string[] = [];
+      const lowerReply = replyText.toLowerCase();
+      
+      if (lowerReply.includes('pomodoro')) suggestions.push('Explain Pomodoro');
+      if (lowerReply.includes('recall')) suggestions.push('Explain Active Recall');
+      if (lowerReply.includes('feynman')) suggestions.push('Explain Feynman');
+      if (lowerReply.includes('spaced')) suggestions.push('Explain Spaced Repetition');
+      
+      const overdue = getOverdueAssignments(assignments);
+      if (overdue.length > 0) {
+        suggestions.push('Check my urgent deadlines');
+      }
+      suggestions.push('Suggest a study plan');
+      suggestions.push('Show my stats overview');
+
+      const uniqueSuggestions = Array.from(new Set(suggestions)).slice(0, 3);
+
       const shivMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'shiv',
-        text: response.text,
+        text: replyText,
         timestamp: new Date(),
-        suggestions: response.suggestions,
+        suggestions: uniqueSuggestions,
       };
+
       setMessages((prev) => [...prev, shivMessage]);
+    } catch (error) {
+      console.warn('AI API call failed or timed out, falling back to local brain:', error);
+      
+      // Fallback local response
+      const fallback = generateResponse(textToSend);
+      const shivMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'shiv',
+        text: fallback.text,
+        timestamp: new Date(),
+        suggestions: fallback.suggestions,
+      };
+
+      setMessages((prev) => [...prev, shivMessage]);
+    } finally {
       setIsTyping(false);
-    }, 800);
+    }
   };
 
   return (
@@ -228,9 +390,9 @@ export default function AssistantPage() {
                 </div>
 
                 {/* Bubble */}
-                <div className="space-y-2">
+                <div className="space-y-2 max-w-full overflow-hidden">
                   <div
-                    className={`p-3.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap border ${
+                    className={`p-3.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap border break-words ${
                       isShiv
                         ? 'bg-[var(--glass-bg-light)] text-[var(--color-text-primary)] border-[var(--glass-border)] rounded-tl-sm'
                         : 'bg-indigo-600 text-white border-indigo-500 rounded-tr-sm shadow-md shadow-indigo-600/10'

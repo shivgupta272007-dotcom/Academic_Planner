@@ -8,6 +8,7 @@ import {
   Trash2,
   Timer,
   Palette,
+  User,
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Button from '../components/ui/Button';
@@ -79,6 +80,26 @@ export default function SettingsPage() {
       <Header title="Settings" subtitle="Customize your experience" />
 
       <div className="max-w-2xl space-y-6">
+        {/* Profile */}
+        <div className="glass-card p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <User size={18} className="text-indigo-400" />
+            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Profile Settings</h3>
+          </div>
+          <div>
+            <label className="block text-sm text-[var(--color-text-secondary)] mb-1.5 font-medium">
+              Your Name
+            </label>
+            <input
+              type="text"
+              value={settings.userName || ''}
+              onChange={(e) => updateSettings({ userName: e.target.value })}
+              placeholder="Enter your name..."
+              className="w-full glass-input py-2.5 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
         {/* Theme */}
         <div className="glass-card p-5">
           <div className="flex items-center gap-3 mb-4">
