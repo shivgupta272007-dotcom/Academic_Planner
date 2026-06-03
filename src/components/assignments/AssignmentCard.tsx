@@ -99,6 +99,25 @@ export default function AssignmentCard({ assignment, onEdit, onDelete }: Assignm
             </p>
           )}
 
+          {assignment.attachment && (
+            <div className="mt-2.5 flex items-center">
+              <a
+                href={assignment.attachment.data}
+                download={assignment.attachment.name}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/15 hover:bg-indigo-500/20 transition-all cursor-pointer"
+                title="Click to view or download PDF"
+              >
+                <span>📄</span>
+                <span className="truncate max-w-[180px]">{assignment.attachment.name}</span>
+                <span className="text-[9px] opacity-75">
+                  ({Math.round(assignment.attachment.size / 1024)} KB)
+                </span>
+              </a>
+            </div>
+          )}
+
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-2 mt-2.5">
             {subject && (

@@ -25,6 +25,11 @@ export interface Assignment {
   notes: Note[];
   createdAt: string;
   completedAt?: string;
+  attachment?: {
+    name: string;
+    data: string;
+    size: number;
+  };
 }
 
 export interface StudySession {
